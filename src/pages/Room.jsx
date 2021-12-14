@@ -8,9 +8,13 @@ import {
     FloatingLabel,
     Col,
     Row,
-    Alert,
+    Badge,
+    Tab,
+    Tabs,
 } from "react-bootstrap";
 import { toast } from "react-toastify";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCrown } from "@fortawesome/free-solid-svg-icons";
 
 export default class Room extends Component {
     constructor(props) {
@@ -30,15 +34,11 @@ export default class Room extends Component {
         this.socket.on("time", (time) => {
             if (
                 this.video.current &&
-                Math.abs(this.video.current.currentTime - time) > 1
+                Math.abs(this.video.current.currentTime - time) > 0.5
             ) {
                 this.video.current.currentTime = time;
                 this.isSeeking = false;
             }
-        });
-
-        this.socket.on("get-time", (time, userId) => {
-            this.socket.emit("update-time", time, userId);
         });
 
         this.socket.on("status", async (status) => {
@@ -47,35 +47,41 @@ export default class Room extends Component {
         });
 
         this.socket.on("users", (users) => {
-            console.log(users);
             this.setState({ users: users });
         });
 
-        this.socket.on("notification", (msg) => {
-            toast.success(msg);
+        this.socket.on("notification", (msg, type) => {
+            toast(msg, { type: type });
         });
 
         setInterval(() => {
             if (
-                this.nickname.current?.value === "admin" &&
+                this.isAdmin() &&
                 this.video.current &&
                 !this.video.current.paused
             ) {
                 const time = this.video.current.currentTime;
                 this.socket.emit("time", time, (error) => {
-                    console.error(error);
+                    toast.error(error);
                 });
             }
         }, 1000);
     }
 
-    setData() {
+    isAdmin() {
+        const index = this.state.users
+            .map((x) => x.nickname)
+            .indexOf(this.nickname.current?.value);
+        return index === 0;
+    }
+
+    setData(e) {
+        e.preventDefault();
         const roomName = this.room.current.value;
         const nickname = this.nickname.current.value;
         this.socket.emit("join", roomName, nickname, (error) => {
-            console.error(error);
+            toast.error(error);
         });
-        console.log(roomName, nickname);
     }
 
     onSeeking() {
@@ -84,27 +90,30 @@ export default class Room extends Component {
             return;
         }
         this.socket.emit("time", this.video.current.currentTime, (error) => {
-            console.error(error);
+            toast.error(error);
         });
     }
 
     onPlayStatusChange(status) {
         this.socket.emit("status", status, (error) => {
-            console.error(error);
+            toast.error(error);
+        });
+        this.socket.emit("time", this.video.current.currentTime, (error) => {
+            toast.error(error);
         });
     }
 
     render() {
         return (
             <Container className="mt-5">
-                <form className="mb-3">
+                <form className="mb-3" onSubmit={(e) => this.setData(e)}>
                     <Row className="g-3">
                         <Col md>
                             <FloatingLabel
                                 controlId="floatingInput"
                                 label="نام کوچک"
                             >
-                                <Form.Control ref={this.nickname} />
+                                <Form.Control ref={this.nickname} required />
                             </FloatingLabel>
                         </Col>
                         <Col md>
@@ -115,6 +124,7 @@ export default class Room extends Component {
                                 <Form.Select
                                     aria-label="Floating label select example"
                                     ref={this.room}
+                                    required
                                 >
                                     <option value="one">اتاق شماره ۱</option>
                                     <option value="two">اتاق شماره ۲</option>
@@ -123,7 +133,7 @@ export default class Room extends Component {
                             </FloatingLabel>
                         </Col>
                     </Row>
-                    <Button className="mt-3" onClick={() => this.setData()}>
+                    <Button className="mt-3" type="submit">
                         تایید اطلاعات
                     </Button>
                 </form>
@@ -139,15 +149,42 @@ export default class Room extends Component {
                             controls
                         ></video>
                     </Col>
-                    <Col sm={4}>
-                        <span>افراد آنلاین در اتاق</span>
-                        <div>
-                            <Alert variant="success" className="mb-2">
-                                {this.state.users.map((user) => (
-                                    <div>{user.nickname}</div>
-                                ))}
-                            </Alert>
-                        </div>
+                    <Col sm={4} className="bg-light rounded pl-2 pr-2 h-75">
+                        <Tabs
+                            defaultActiveKey="profile"
+                            id="uncontrolled-tab-example"
+                            className="mb-3"
+                        >
+                            <Tab eventKey="home" title="افراد">
+                                <div className="mb-2">افراد آنلاین در اتاق</div>
+                            </Tab>
+                            <Tab eventKey="profile" title="گفتگو">
+                                <div>
+                                    {this.state.users.map((user, index) => (
+                                        <>
+                                            <Badge
+                                                bg={
+                                                    user.nickname ===
+                                                    this.nickname.current.value
+                                                        ? "success"
+                                                        : "secondary"
+                                                }
+                                                className="mb-2 rounded"
+                                            >
+                                                {index === 0 && (
+                                                    <>
+                                                        <FontAwesomeIcon
+                                                            icon={faCrown}
+                                                        />{" "}
+                                                    </>
+                                                )}
+                                                {user.nickname}
+                                            </Badge>{" "}
+                                        </>
+                                    ))}
+                                </div>
+                            </Tab>
+                        </Tabs>
                     </Col>
                 </Row>
             </Container>

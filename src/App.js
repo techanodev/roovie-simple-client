@@ -8,10 +8,11 @@ import "./resources/style.css";
 
 function App() {
     return (
-        <>
+        <div className="dark">
+            <div className="background" />
             <ToastContainer />
             <Room />
-        </>
+        </div>
     );
 }
 
