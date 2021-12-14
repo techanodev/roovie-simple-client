@@ -8,12 +8,14 @@ import {
     FloatingLabel,
     Col,
     Row,
+    Alert,
 } from "react-bootstrap";
+import { toast } from "react-toastify";
 
 export default class Room extends Component {
     constructor(props) {
         super(props);
-        this.state = { time: 0 };
+        this.state = { users: [] };
         this.nickname = React.createRef();
         this.room = React.createRef();
         this.isSeeking = true;
@@ -42,6 +44,15 @@ export default class Room extends Component {
         this.socket.on("status", async (status) => {
             if (status) await this.video.current?.play();
             else this.video.current?.pause();
+        });
+
+        this.socket.on("users", (users) => {
+            console.log(users);
+            this.setState({ users: users });
+        });
+
+        this.socket.on("notification", (msg) => {
+            toast.success(msg);
         });
 
         setInterval(() => {
@@ -91,7 +102,7 @@ export default class Room extends Component {
                         <Col md>
                             <FloatingLabel
                                 controlId="floatingInput"
-                                label="Nickname"
+                                label="نام کوچک"
                             >
                                 <Form.Control ref={this.nickname} />
                             </FloatingLabel>
@@ -99,22 +110,21 @@ export default class Room extends Component {
                         <Col md>
                             <FloatingLabel
                                 controlId="floatingSelectGrid"
-                                label="Select room"
+                                label="اتاق خود را انتخاب نمایید"
                             >
                                 <Form.Select
                                     aria-label="Floating label select example"
                                     ref={this.room}
                                 >
-                                    <option>Select room</option>
-                                    <option value="one">Room One</option>
-                                    <option value="two">Room Two</option>
-                                    <option value="three">Room Three</option>
+                                    <option value="one">اتاق شماره ۱</option>
+                                    <option value="two">اتاق شماره ۲</option>
+                                    <option value="three">اتاق شماره ۳</option>
                                 </Form.Select>
                             </FloatingLabel>
                         </Col>
                     </Row>
                     <Button className="mt-3" onClick={() => this.setData()}>
-                        Set data
+                        تایید اطلاعات
                     </Button>
                 </form>
                 <Row>
@@ -130,7 +140,14 @@ export default class Room extends Component {
                         ></video>
                     </Col>
                     <Col sm={4}>
-                        <span>Chat room</span>
+                        <span>افراد آنلاین در اتاق</span>
+                        <div>
+                            <Alert variant="success" className="mb-2">
+                                {this.state.users.map((user) => (
+                                    <div>{user.nickname}</div>
+                                ))}
+                            </Alert>
+                        </div>
                     </Col>
                 </Row>
             </Container>

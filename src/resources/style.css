@@ -1,0 +1,4 @@
+.form-floating > label {
+    left: unset;
+    right: 0;
+}
