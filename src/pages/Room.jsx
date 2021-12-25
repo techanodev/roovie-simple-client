@@ -23,6 +23,7 @@ export default class Room extends Component {
         this.nickname = React.createRef();
         this.room = React.createRef();
         this.isSeeking = true;
+        this.isChangingStatus = false;
         /**
          * @type {React.RefObject<HTMLVideoElement>}
          */
@@ -30,7 +31,11 @@ export default class Room extends Component {
     }
 
     componentDidMount() {
-        this.socket = io("http://192.168.16.100:8000/");
+        this.socket = io("http://192.168.16.101:8080/", {
+            auth: {
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNjM3MzI3NTg1LCJleHAiOjE2NTI4Nzk1ODV9.HLChj5kDpsdykcieexTBkXlt8gxQa6IIubYXBMUmFaA",
+            },
+        });
         this.socket.on("time", (time) => {
             if (
                 this.video.current &&
@@ -42,6 +47,7 @@ export default class Room extends Component {
         });
 
         this.socket.on("status", async (status) => {
+            this.isChangingStatus = true;
             if (status) await this.video.current?.play();
             else this.video.current?.pause();
         });
@@ -95,6 +101,10 @@ export default class Room extends Component {
     }
 
     onPlayStatusChange(status) {
+        if (this.isChangingStatus) {
+            this.isChangingStatus = false;
+            return;
+        }
         this.socket.emit("status", status, (error) => {
             toast.error(error);
         });
@@ -111,7 +121,7 @@ export default class Room extends Component {
                         <Col md>
                             <FloatingLabel
                                 controlId="floatingInput"
-                                label="نام کوچک"
+                                label="نام نمایشی"
                             >
                                 <Form.Control ref={this.nickname} required />
                             </FloatingLabel>
@@ -141,8 +151,8 @@ export default class Room extends Component {
                     <Col sm={8}>
                         <video
                             ref={this.video}
-                            className="w-100 h-75"
-                            src="https://cdn.3rver.org/?s=2&f=/up/Movie/Series/Daddy.Long.Legs/Daddy.Long.Legs.E01.Farsi.Dubbed.HexDL.com.mkv"
+                            className="w-100 h-100"
+                            src="http://192.168.16.101:8888/V%20for%20Vendetta%202005/V%20for%20Vendetta%202005.mkv"
                             onPlay={() => this.onPlayStatusChange(true)}
                             onPause={() => this.onPlayStatusChange(false)}
                             onPlaying={(e) => this.onSeeking(e)}
